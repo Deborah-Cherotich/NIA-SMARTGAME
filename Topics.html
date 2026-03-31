@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NIA Game Admin | Topic Menu</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+/* ── Topics page specific styles ── */
+.topic-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+  gap:16px;
+}
+.topic-card {
+  background:var(--bg-card2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px; cursor:default;
+  transition:all var(--tr); position:relative; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.topic-card:hover {
+  border-color:rgba(240,165,0,.35);
+  transform:translateY(-3px);
+  box-shadow:0 8px 30px rgba(0,0,0,.3);
+}
+.topic-card-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+.topic-icon {
+  width:42px; height:42px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;
+}
+.topic-level-tag {
+  font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+  padding:3px 8px; border-radius:4px;
+}
+.tl-basic        { background:rgba(0,230,118,.1);  color:var(--green); }
+.tl-intermediate { background:rgba(0,212,255,.08); color:var(--cyan); }
+.tl-advanced     { background:rgba(255,140,0,.1);  color:var(--orange); }
+.tl-expert       { background:rgba(240,165,0,.1);  color:var(--gold); }
+.tl-master       { background:rgba(168,85,247,.1); color:var(--purple); }
+
+.topic-name { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:600; margin-bottom:6px; }
+.topic-desc { font-size:13px; color:var(--text-muted); line-height:1.5; flex:1; }
+.topic-footer {
+  display:flex; gap:12px; margin-top:14px; padding-top:14px;
+  border-top:1px solid var(--border); font-size:12px; color:var(--text-dim);
+}
+.topic-footer span { display:flex; align-items:center; gap:4px; }
+.topic-actions { display:flex; gap:6px; margin-top:12px; }
+
+/* Level group headers */
+.level-section { margin-bottom:28px; }
+.level-header {
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:16px; padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+}
+.level-header-name { font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700; }
+.level-count {
+  padding:2px 10px; border-radius:99px; font-size:11px; font-weight:700;
+  background:rgba(240,165,0,.1); color:var(--gold); border:1px solid rgba(240,165,0,.2);
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-badge">N</div>
+    <div class="sidebar-title">NIA GAME <span>Admin Office</span></div>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav"></nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="doLogout()">
+      <i class="fas fa-sign-out-alt"></i>
+      <span class="logout-label">Sign Out</span>
+    </button>
+  </div>
+</aside>
+
+<!-- HEADER -->
+<header class="header" id="header">
+  <div class="header-left">
+    <div class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+    <div class="breadcrumb">
+      <i class="fas fa-home" style="font-size:12px;"></i>
+      <span id="breadcrumb-text">Topic Menu</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="notif-btn"><i class="fas fa-bell"></i><div class="notif-dot"></div></div>
+    <div class="user-pill">
+      <div class="user-avatar" id="header-avatar"></div>
+      <div class="user-info">
+        <div class="uname" id="header-name"></div>
+        <div class="urole" id="header-role"></div>
+      </div>
+      <div class="role-badge" id="header-badge"></div>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main" id="main">
+
+  <div class="page-header">
+    <div class="page-title">
+      Topic Menu
+      <span>Manage game topics per level — only approved topics appear in the game</span>
+    </div>
+    <div class="page-actions" id="page-actions"></div>
+  </div>
+
+  <div id="perm-notice"></div>
+
+  <!-- Filters -->
+  <div class="filter-bar" style="border-radius:var(--radius-lg) var(--radius-lg) 0 0;border:1px solid var(--border);border-bottom:none;margin-bottom:0;background:var(--bg-card);">
+    <div class="search-wrap">
+      <i class="fas fa-search"></i>
+      <input class="search-input" type="text" id="search-input" placeholder="Search topics..." oninput="renderTopics()"/>
+    </div>
+    <select class="filter-select" id="filter-level" onchange="renderTopics()">
+      <option value="">All Levels</option>
+      <option value="basic">Basic</option>
+      <option value="intermediate">Intermediate</option>
+      <option value="advanced">Advanced</option>
+      <option value="expert">Expert</option>
+      <option value="master">Master</option>
+    </select>
+    <select class="filter-select" id="filter-subject" onchange="renderTopics()">
+      <option value="">All Subjects</option>
+      <option value="Data Structures">Data Structures</option>
+      <option value="Algorithms">Algorithms</option>
+    </select>
+  </div>
+
+  <div id="topics-container" style="padding:20px;background:var(--bg-card);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);"></div>
+
+</main>
+
+<!-- MODAL: Add / Edit Topic -->
+<div class="modal-overlay" id="modal-topic">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-topic-title">Add Topic to Menu</div>
+      <button class="modal-close" onclick="closeModal('modal-topic')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="form-group">
+      <label>Topic Name</label>
+      <div class="input-wrap">
+        <input class="form-control" id="t-name" placeholder="e.g. Binary Search Trees"/>
+        <i class="fas fa-book"></i>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Subject</label>
+      <select class="form-control no-icon" id="t-subject">
+        <option>Data Structures</option>
+        <option>Algorithms</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Level</label>
+      <select class="form-control no-icon" id="t-level">
+        <option value="basic">Basic</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+        <option value="expert">Expert</option>
+        <option value="master">Master</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea class="form-control" id="t-desc" rows="3" style="padding:12px 14px;" placeholder="Brief description of this topic..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-topic')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTopic()">
+        <i class="fas fa-plus"></i> Save Topic
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+/* ── Topics Page JS ── */
+const session = requireAuth();
+buildSidebar('topics', session.role);
+buildHeader('Topic Menu', session);
+
+// Actions
+if (can(session,'create')) {
+  document.getElementById('page-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="openAddTopic()">
+      <i class="fas fa-plus"></i> Add Topic
+    </button>`;
+}
+if (!can(session,'edit')) {
+  showPermNotice('perm-notice','View-only access. Topic modifications require Admin privileges.');
+}
+
+// Level config
+const levels = ['basic','intermediate','advanced','expert','master'];
+const levelMeta = {
+  basic:        { label:'Basic',        cls:'tl-basic',        iconBg:'rgba(0,230,118,.1)',  iconColor:'var(--green)',  headerColor:'var(--green)' },
+  intermediate: { label:'Intermediate', cls:'tl-intermediate', iconBg:'rgba(0,212,255,.08)', iconColor:'var(--cyan)',   headerColor:'var(--cyan)' },
+  advanced:     { label:'Advanced',     cls:'tl-advanced',     iconBg:'rgba(255,140,0,.1)',  iconColor:'var(--orange)', headerColor:'var(--orange)' },
+  expert:       { label:'Expert',       cls:'tl-expert',       iconBg:'rgba(240,165,0,.1)',  iconColor:'var(--gold)',   headerColor:'var(--gold)' },
+  master:       { label:'Master',       cls:'tl-master',       iconBg:'rgba(168,85,247,.1)', iconColor:'var(--purple)', headerColor:'var(--purple)' },
+};
+
+function renderTopics() {
+  const q       = document.getElementById('search-input').value.toLowerCase();
+  const lvl     = document.getElementById('filter-level').value;
+  const subject = document.getElementById('filter-subject').value;
+
+  const filtered = MOCK.topics.filter(t =>
+    (!q       || t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q)) &&
+    (!lvl     || t.level   === lvl) &&
+    (!subject || t.subject === subject)
+  );
+
+  // Determine which levels to show
+  const shownLevels = lvl ? [lvl] : levels;
+
+  const html = shownLevels.map(l => {
+    const items = filtered.filter(t => t.level === l);
+    if (!items.length) return '';
+    const m = levelMeta[l];
+    const cards = items.map(t => `
+      <div class="topic-card">
+        <div class="topic-card-header">
+          <div class="topic-icon" style="background:${m.iconBg};color:${m.iconColor};">
+            <i class="fas fa-code-branch"></i>
+          </div>
+          <span class="topic-level-tag ${m.cls}">${m.label}</span>
+        </div>
+        <div class="topic-name">${t.name}</div>
+        <div class="topic-desc">${t.desc}</div>
+        <div class="topic-footer">
+          <span><i class="fas fa-book"></i>${t.subject}</span>
+          <span><i class="fas fa-play-circle"></i>${t.plays} plays</span>
+          <span><i class="fas fa-file-code"></i>${t.file}</span>
+        </div>
+        ${can(session,'edit') ? `
+        <div class="topic-actions">
+          <button class="btn btn-cyan btn-sm" style="flex:1;" onclick="openEditTopic(${t.id})">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" title="Delete" onclick="deleteTopic(${t.id})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>` : ''}
+      </div>`).join('');
+
+    return `
+      <div class="level-section">
+        <div class="level-header">
+          <div class="level-header-name" style="color:${m.headerColor};">
+            <i class="fas fa-layer-group" style="margin-right:8px;"></i>${m.label}
+          </div>
+          <span class="level-count">${items.length} topic${items.length!==1?'s':''}</span>
+        </div>
+        <div class="topic-grid">${cards}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('topics-container').innerHTML = html ||
+    `<div class="empty-state"><i class="fas fa-search"></i><p>No topics match your filters.</p></div>`;
+}
+
+// ── Actions ──
+function deleteTopic(id) {
+  if (!confirm('Remove this topic from the menu?')) return;
+  const i = MOCK.topics.findIndex(t => t.id === id);
+  if (i > -1) { MOCK.topics.splice(i,1); renderTopics(); }
+}
+
+let editingTopicId = null;
+
+function openAddTopic() {
+  editingTopicId = null;
+  document.getElementById('modal-topic-title').textContent = 'Add Topic to Menu';
+  document.getElementById('t-name').value = '';
+  document.getElementById('t-desc').value = '';
+  openModal('modal-topic');
+}
+function openEditTopic(id) {
+  const t = MOCK.topics.find(x => x.id === id);
+  editingTopicId = id;
+  document.getElementById('modal-topic-title').textContent = 'Edit Topic';
+  document.getElementById('t-name').value    = t.name;
+  document.getElementById('t-desc').value    = t.desc;
+  document.getElementById('t-subject').value = t.subject;
+  document.getElementById('t-level').value   = t.level;
+  openModal('modal-topic');
+}
+function saveTopic() {
+  // In production: POST/PUT to your API
+  closeModal('modal-topic');
+  renderTopics();
+}
+
+// Initial render
+renderTopics();
+</script>
+</body>
+</html>

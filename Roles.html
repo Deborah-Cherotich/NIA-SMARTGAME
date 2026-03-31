@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NIA Game Admin | Role Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+/* ── Roles page specific styles ── */
+.locked-overlay {
+  text-align:center; padding:80px 20px;
+}
+.locked-overlay .lock-icon {
+  width:80px; height:80px; border-radius:20px;
+  background:rgba(255,77,77,.08); border:1px solid rgba(255,77,77,.2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:32px; color:var(--red); margin:0 auto 20px;
+}
+.locked-overlay h3 {
+  font-family:'Orbitron',sans-serif; font-size:18px; margin-bottom:8px;
+}
+.locked-overlay p { color:var(--text-muted); font-size:14px; }
+
+.role-permission-grid {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;
+  margin-bottom:28px;
+}
+.role-perm-card {
+  background:var(--bg-card2); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:18px;
+}
+.role-perm-title {
+  font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700;
+  margin-bottom:14px; display:flex; align-items:center; gap:8px;
+}
+.perm-item {
+  display:flex; align-items:center; gap:8px; font-size:13px;
+  color:var(--text-muted); margin-bottom:8px;
+}
+.perm-item .pi-icon { font-size:12px; width:16px; text-align:center; }
+.perm-yes { color:var(--green); }
+.perm-no  { color:var(--red); opacity:.5; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-badge">N</div>
+    <div class="sidebar-title">NIA GAME <span>Admin Office</span></div>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav"></nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="doLogout()">
+      <i class="fas fa-sign-out-alt"></i>
+      <span class="logout-label">Sign Out</span>
+    </button>
+  </div>
+</aside>
+
+<!-- HEADER -->
+<header class="header" id="header">
+  <div class="header-left">
+    <div class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+    <div class="breadcrumb">
+      <i class="fas fa-home" style="font-size:12px;"></i>
+      <span id="breadcrumb-text">Role Management</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="notif-btn"><i class="fas fa-bell"></i><div class="notif-dot"></div></div>
+    <div class="user-pill">
+      <div class="user-avatar" id="header-avatar"></div>
+      <div class="user-info">
+        <div class="uname" id="header-name"></div>
+        <div class="urole" id="header-role"></div>
+      </div>
+      <div class="role-badge" id="header-badge"></div>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main" id="main">
+
+  <div class="page-header">
+    <div class="page-title">
+      Role Management
+      <span>Assign and manage staff, admin, and super admin accounts</span>
+    </div>
+    <div class="page-actions" id="page-actions"></div>
+  </div>
+
+  <!-- Content injected based on role -->
+  <div id="page-content"></div>
+
+</main>
+
+<!-- MODAL: Add Staff -->
+<div class="modal-overlay" id="modal-staff">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-staff-title">Add Staff / Admin Account</div>
+      <button class="modal-close" onclick="closeModal('modal-staff')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="form-group">
+      <label>Full Name</label>
+      <div class="input-wrap">
+        <input class="form-control" id="s-name" placeholder="e.g. John Staff"/>
+        <i class="fas fa-user"></i>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <input class="form-control" type="email" id="s-email" placeholder="staff@niagame.com"/>
+        <i class="fas fa-envelope"></i>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Assign Role</label>
+      <select class="form-control no-icon" id="s-role">
+        <option value="admin">Admin</option>
+        <option value="staff">Staff</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Temporary Password</label>
+      <div class="input-wrap">
+        <input class="form-control" type="password" id="s-pass" placeholder="Set temporary password"/>
+        <i class="fas fa-lock"></i>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-staff')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStaff()">
+        <i class="fas fa-user-plus"></i> Create Account
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Change Role -->
+<div class="modal-overlay" id="modal-change-role">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Change Role</div>
+      <button class="modal-close" onclick="closeModal('modal-change-role')"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="change-role-body"></div>
+    <div class="form-group">
+      <label>New Role</label>
+      <select class="form-control no-icon" id="new-role-select">
+        <option value="admin">Admin</option>
+        <option value="staff">Staff</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-change-role')">Cancel</button>
+      <button class="btn btn-cyan" onclick="confirmRoleChange()">
+        <i class="fas fa-exchange-alt"></i> Update Role
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+/* ── Roles Page JS ── */
+const session = requireAuth();
+buildSidebar('roles', session.role);
+buildHeader('Role Management', session);
+
+const roleMeta = {
+  superadmin: { label:'Super Admin', cls:'badge-superadmin', iconCls:'ic-orange', statCls:'gold',   icon:'fa-crown' },
+  admin:      { label:'Admin',       cls:'badge-admin',      iconCls:'ic-cyan',   statCls:'cyan',   icon:'fa-user-shield' },
+  staff:      { label:'Staff',       cls:'badge-staff',      iconCls:'ic-purple', statCls:'purple', icon:'fa-user-check' },
+};
+
+// ── Build page based on role ──
+const content = document.getElementById('page-content');
+
+if (session.role !== 'superadmin') {
+  content.innerHTML = `
+    <div class="card">
+      <div class="locked-overlay">
+        <div class="lock-icon"><i class="fas fa-lock"></i></div>
+        <h3>Access Restricted</h3>
+        <p>Role Management is only accessible to the <strong>Super Admin</strong>.<br/>
+        Contact Dr. Amina Salim (superadmin@niagame.com) to request role changes.</p>
+      </div>
+    </div>`;
+} else {
+  // Super admin has full access
+  document.getElementById('page-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="openAddStaff()">
+      <i class="fas fa-user-plus"></i> Add Staff
+    </button>`;
+
+  buildRolesContent();
+}
+
+function buildRolesContent() {
+  // Role stat cards
+  const counts = [
+    { role:'superadmin', count: MOCK.staff.filter(s=>s.role==='superadmin').length },
+    { role:'admin',      count: MOCK.staff.filter(s=>s.role==='admin').length },
+    { role:'staff',      count: MOCK.staff.filter(s=>s.role==='staff').length },
+  ];
+
+  const statsHtml = `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+      ${counts.map(c => {
+        const m = roleMeta[c.role];
+        return `
+          <div class="stat-card ${m.statCls}">
+            <div class="stat-icon ${m.iconCls}"><i class="fas ${m.icon}"></i></div>
+            <div class="stat-val">${c.count}</div>
+            <div class="stat-label">${m.label} Account${c.count!==1?'s':''}</div>
+          </div>`;
+      }).join('')}
+    </div>`;
+
+  // Permissions overview
+  const permsHtml = `
+    <div style="margin-bottom:24px;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:600;margin-bottom:16px;color:var(--text-muted);">
+        <i class="fas fa-shield-alt" style="margin-right:8px;color:var(--gold);"></i>ROLE PERMISSIONS OVERVIEW
+      </div>
+      <div class="role-permission-grid">
+        ${[
+          { role:'superadmin', perms:['View All','Approve/Reject','Create/Edit','Delete','Assign Roles'] },
+          { role:'admin',      perms:['View All','Approve/Reject','Create/Edit','Delete','—'] },
+          { role:'staff',      perms:['View All','—','—','—','—'] },
+        ].map(rp => {
+          const m = roleMeta[rp.role];
+          const items = ['View','Approve','Modify','Delete','Roles'];
+          return `
+            <div class="role-perm-card">
+              <div class="role-perm-title">
+                <span class="role-tag ${m.cls}">${m.label}</span>
+              </div>
+              ${items.map((item,i) => {
+                const allowed = rp.perms[i] !== '—';
+                return `
+                  <div class="perm-item">
+                    <i class="fas ${allowed?'fa-check':'fa-times'} pi-icon ${allowed?'perm-yes':'perm-no'}"></i>
+                    <span style="${!allowed?'opacity:.4':''};">${item}</span>
+                  </div>`;
+              }).join('')}
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // Staff table
+  const tableHtml = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Staff &amp; Admin Accounts</div>
+        <select class="filter-select" id="filter-role" onchange="renderStaffTable()">
+          <option value="">All Roles</option>
+          <option value="superadmin">Super Admin</option>
+          <option value="admin">Admin</option>
+          <option value="staff">Staff</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Staff Member</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Last Login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="staff-tbody"></tbody>
+        </table>
+      </div>
+    </div>`;
+
+  content.innerHTML = statsHtml + permsHtml + tableHtml;
+  renderStaffTable();
+}
+
+function renderStaffTable() {
+  const filterRole = document.getElementById('filter-role')?.value || '';
+  const data = MOCK.staff.filter(s => !filterRole || s.role === filterRole);
+
+  document.getElementById('staff-tbody').innerHTML = data.map(s => {
+    const m = roleMeta[s.role];
+    const avatarColors = { superadmin:'rgba(255,140,0,.15)', admin:'rgba(0,212,255,.1)', staff:'rgba(168,85,247,.1)' };
+    const initials = s.name.split(' ').map(n=>n[0]).join('').slice(0,2);
+    const isSelf = (s.role === 'superadmin');
+    return `
+      <tr>
+        <td>
+          <div class="user-mini">
+            <div class="ava" style="background:${avatarColors[s.role]};">${initials}</div>
+            <span>${s.name}</span>
+          </div>
+        </td>
+        <td style="color:var(--text-muted);">${s.email}</td>
+        <td><span class="role-tag ${m.cls}">${m.label}</span></td>
+        <td><span class="status-pill status-${s.status}"><span class="status-dot"></span>${s.status}</span></td>
+        <td style="color:var(--text-muted);font-size:12px;">${s.last}</td>
+        <td>
+          <div class="action-row">
+            ${!isSelf ? `
+              <button class="btn btn-cyan btn-sm btn-icon" title="Change Role" onclick="openChangeRole(${s.id})">
+                <i class="fas fa-exchange-alt"></i>
+              </button>
+              <button class="btn btn-danger btn-sm btn-icon" title="Remove Account" onclick="removeStaff(${s.id})">
+                <i class="fas fa-user-minus"></i>
+              </button>
+            ` : `<span style="font-size:12px;color:var(--text-dim);">Super Admin (you)</span>`}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ── Actions ──
+let changingRoleId = null;
+
+function openAddStaff() {
+  document.getElementById('modal-staff-title').textContent = 'Add Staff / Admin Account';
+  openModal('modal-staff');
+}
+function saveStaff() {
+  // In production: POST to /api/staff
+  closeModal('modal-staff');
+}
+
+function openChangeRole(id) {
+  changingRoleId = id;
+  const s = MOCK.staff.find(x => x.id === id);
+  document.getElementById('change-role-body').innerHTML = `
+    <div style="padding:12px;background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;">
+      <div style="font-weight:600;">${s.name}</div>
+      <div style="font-size:12px;color:var(--text-muted);">Current role: ${roleMeta[s.role].label}</div>
+    </div>`;
+  document.getElementById('new-role-select').value = s.role === 'admin' ? 'staff' : 'admin';
+  openModal('modal-change-role');
+}
+function confirmRoleChange() {
+  const s = MOCK.staff.find(x => x.id === changingRoleId);
+  if (s) s.role = document.getElementById('new-role-select').value;
+  closeModal('modal-change-role');
+  renderStaffTable();
+}
+function removeStaff(id) {
+  if (!confirm('Remove this staff account? They will lose access immediately.')) return;
+  const i = MOCK.staff.findIndex(x => x.id === id);
+  if (i > -1) { MOCK.staff.splice(i,1); renderStaffTable(); }
+}
+</script>
+</body>
+</html>

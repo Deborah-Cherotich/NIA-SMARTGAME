@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NIA Game Admin | Reports</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+/* ── Reports page specific styles ── */
+.analytic-num {
+  font-family:'Orbitron',sans-serif; font-size:36px; font-weight:700; line-height:1; margin-bottom:4px;
+}
+.analytic-label { font-size:13px; color:var(--text-muted); }
+
+.sparkline {
+  display:flex; align-items:flex-end; gap:4px; height:48px; margin-top:12px;
+}
+.spark-bar {
+  flex:1; border-radius:3px 3px 0 0;
+  background:rgba(240,165,0,.2); min-width:8px;
+  transition:background var(--tr); cursor:pointer;
+  position:relative;
+}
+.spark-bar:hover { background:var(--gold); }
+.spark-bar.peak  { background:rgba(240,165,0,.5); }
+.spark-days {
+  display:flex; justify-content:space-between;
+  margin-top:4px; font-size:10px; color:var(--text-dim);
+}
+
+.metric-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 0; border-bottom:1px solid rgba(255,255,255,.04);
+}
+.metric-row:last-child { border-bottom:none; }
+.metric-name  { font-size:13px; font-weight:600; }
+.metric-value { font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700; }
+.metric-sub   { font-size:11px; color:var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-badge">N</div>
+    <div class="sidebar-title">NIA GAME <span>Admin Office</span></div>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav"></nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="doLogout()">
+      <i class="fas fa-sign-out-alt"></i>
+      <span class="logout-label">Sign Out</span>
+    </button>
+  </div>
+</aside>
+
+<!-- HEADER -->
+<header class="header" id="header">
+  <div class="header-left">
+    <div class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+    <div class="breadcrumb">
+      <i class="fas fa-home" style="font-size:12px;"></i>
+      <span id="breadcrumb-text">Reports &amp; Analytics</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="notif-btn"><i class="fas fa-bell"></i><div class="notif-dot"></div></div>
+    <div class="user-pill">
+      <div class="user-avatar" id="header-avatar"></div>
+      <div class="user-info">
+        <div class="uname" id="header-name"></div>
+        <div class="urole" id="header-role"></div>
+      </div>
+      <div class="role-badge" id="header-badge"></div>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main" id="main">
+
+  <div class="page-header">
+    <div class="page-title">
+      Reports &amp; Analytics
+      <span>Platform-wide performance data and usage metrics</span>
+    </div>
+    <div class="page-actions">
+      <select class="filter-select" id="date-range" onchange="updateCharts()">
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="all">All Time</option>
+      </select>
+      <button class="btn btn-outline" onclick="window.print()">
+        <i class="fas fa-print"></i> Print Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="stat-grid" id="report-stats"></div>
+
+  <!-- Row 1 -->
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-fire" style="color:var(--gold);margin-right:8px;"></i>
+          Most Played Topics
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="bar-chart" id="chart-top-topics"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-mouse-pointer" style="color:var(--cyan);margin-right:8px;"></i>
+          Clicks per Game File
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="bar-chart" id="chart-clicks"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2 -->
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-star" style="color:var(--gold);margin-right:8px;"></i>
+          Average Score by Subject
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="bar-chart" id="chart-scores"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-calendar-week" style="color:var(--purple);margin-right:8px;"></i>
+          Daily Activity This Week
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="sparkline" id="sparkline"></div>
+        <div class="spark-days">
+          <span>Mon</span><span>Tue</span><span>Wed</span>
+          <span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div style="display:flex;gap:32px;margin-top:20px;flex-wrap:wrap;">
+          <div>
+            <div class="analytic-num" style="color:var(--gold);">1,248</div>
+            <div class="analytic-label">Games This Week</div>
+          </div>
+          <div>
+            <div class="analytic-num" style="color:var(--cyan);">74%</div>
+            <div class="analytic-label">Completion Rate</div>
+          </div>
+          <div>
+            <div class="analytic-num" style="color:var(--green);">86</div>
+            <div class="analytic-label">New Users</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3 -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-users" style="color:var(--cyan);margin-right:8px;"></i>
+          Top Performing Users
+        </div>
+      </div>
+      <div class="card-body" id="top-users-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-signal" style="color:var(--orange);margin-right:8px;"></i>
+          Games Played by Level
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="bar-chart" id="chart-by-level"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="shared.js"></script>
+<script>
+/* ── Reports Page JS ── */
+const session = requireAuth();
+buildSidebar('reports', session.role);
+buildHeader('Reports & Analytics', session);
+
+// ── Data sets (could be fetched from API) ──
+const DATA = {
+  week: {
+    stats: [
+      { val:'1,248', label:'Games Played',       icon:'fa-gamepad',     cls:'gold',   ic:'ic-gold'   },
+      { val:'86.4%', label:'Avg Completion Rate', icon:'fa-check-circle',cls:'green',  ic:'ic-green'  },
+      { val:'74.2',  label:'Platform Avg Score',  icon:'fa-star',        cls:'cyan',   ic:'ic-cyan'   },
+      { val:'86',    label:'New Users',            icon:'fa-user-plus',   cls:'purple', ic:'ic-purple' },
+    ],
+    topTopics: [
+      { label:'Array Ops',    v:312, c:'var(--gold)'   },
+      { label:'Binary Search',v:301, c:'var(--cyan)'   },
+      { label:'Linked List',  v:280, c:'var(--green)'  },
+      { label:'Stack Basics', v:248, c:'var(--purple)' },
+      { label:'Bubble Sort',  v:198, c:'var(--orange)' },
+    ],
+    clicks: [
+      { label:'quick-sort',  v:234, c:'var(--gold)'   },
+      { label:'dijkstra',    v:198, c:'var(--cyan)'   },
+      { label:'merge-sort',  v:176, c:'var(--green)'  },
+      { label:'bst-ops',     v:154, c:'var(--purple)' },
+      { label:'astar',       v:98,  c:'var(--orange)' },
+    ],
+    scores: [
+      { label:'Data Structures', v:78, c:'var(--gold)'   },
+      { label:'Algorithms',      v:71, c:'var(--cyan)'   },
+      { label:'Sorting',         v:83, c:'var(--green)'  },
+      { label:'Graph Theory',    v:65, c:'var(--purple)' },
+    ],
+    spark:    [35,60,45,80,65,90,55],
+    byLevel: [
+      { label:'Basic',        v:423, c:'var(--green)'  },
+      { label:'Intermediate', v:310, c:'var(--cyan)'   },
+      { label:'Advanced',     v:198, c:'var(--orange)' },
+      { label:'Expert',       v:112, c:'var(--gold)'   },
+      { label:'Master',       v:42,  c:'var(--purple)' },
+    ],
+  },
+};
+
+// Use same data for month/all in demo
+DATA.month = DATA.week;
+DATA.all   = DATA.week;
+
+function updateCharts() {
+  const range = document.getElementById('date-range').value;
+  const d = DATA[range] || DATA.week;
+
+  // Stat cards
+  document.getElementById('report-stats').innerHTML = d.stats.map(s => `
+    <div class="stat-card ${s.cls}">
+      <div class="stat-icon ${s.ic}"><i class="fas ${s.icon}"></i></div>
+      <div class="stat-val">${s.val}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>`).join('');
+
+  // Helper: bar chart
+  function barChart(id, data) {
+    const max = Math.max(...data.map(x => x.v));
+    document.getElementById(id).innerHTML = data.map(t => `
+      <div class="bar-row">
+        <div class="bar-label">${t.label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${t.v/max*100}%;background:${t.c};"></div></div>
+        <div class="bar-val">${t.v}</div>
+      </div>`).join('');
+  }
+
+  barChart('chart-top-topics', d.topTopics);
+  barChart('chart-clicks',     d.clicks);
+  barChart('chart-scores',     d.scores.map(s=>({...s, v:s.v, label:s.label, bar:`${s.v}%`})));
+  barChart('chart-by-level',   d.byLevel);
+
+  // Scores bar chart special (show %)
+  const maxScore = Math.max(...d.scores.map(x=>x.v));
+  document.getElementById('chart-scores').innerHTML = d.scores.map(t=>`
+    <div class="bar-row">
+      <div class="bar-label">${t.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${t.v/maxScore*100}%;background:${t.c};"></div></div>
+      <div class="bar-val">${t.v}%</div>
+    </div>`).join('');
+
+  // Sparkline
+  document.getElementById('sparkline').innerHTML = d.spark.map((h,i) => `
+    <div class="spark-bar ${h===Math.max(...d.spark)?'peak':''}" style="height:${h}%;" title="${h} games"></div>
+  `).join('');
+
+  // Top users
+  const top = [...MOCK.users].sort((a,b)=>b.score-a.score).slice(0,5);
+  const lvlColor = {Basic:'var(--green)',Intermediate:'var(--cyan)',Advanced:'var(--orange)',Expert:'var(--gold)',Master:'var(--purple)'};
+  document.getElementById('top-users-list').innerHTML = top.map((u,i)=>`
+    <div class="metric-row">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:var(--text-dim);width:20px;">${i+1}</div>
+        <div class="user-mini">
+          <div class="ava" style="background:${lvlColor[u.level]}22;color:${lvlColor[u.level]};">
+            ${u.name.split(' ').map(n=>n[0]).join('')}
+          </div>
+          <div>
+            <div class="metric-name">${u.name}</div>
+            <div class="metric-sub">${u.level} · ${u.games} games played</div>
+          </div>
+        </div>
+      </div>
+      <div class="metric-value" style="color:${lvlColor[u.level]};">${u.score}%</div>
+    </div>`).join('');
+}
+
+// Initial render
+updateCharts();
+</script>
+</body>
+</html>

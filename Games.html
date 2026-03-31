@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NIA Game Admin | Game Approval</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+/* ── Game Approval page specific styles ── */
+.games-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+  gap:16px;
+}
+
+.game-card {
+  background:var(--bg-card2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px;
+  transition:all var(--tr);
+  display:flex; flex-direction:column;
+}
+.game-card:hover { border-color:rgba(0,212,255,.3); transform:translateY(-2px); box-shadow:0 8px 30px rgba(0,0,0,.3); }
+
+.game-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+.game-name     { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:600; margin-bottom:6px; }
+.game-meta     { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--text-muted); }
+.game-meta span { display:flex; align-items:center; gap:4px; }
+.game-desc     { font-size:13px; color:var(--text-muted); line-height:1.6; margin:10px 0; flex:1; }
+.game-actions  {
+  display:flex; gap:8px; margin-top:14px; padding-top:14px;
+  border-top:1px solid var(--border); flex-wrap:wrap;
+}
+
+.level-chip {
+  font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+  padding:3px 8px; border-radius:4px; white-space:nowrap;
+}
+.lc-basic        { background:rgba(0,230,118,.1);  color:var(--green); }
+.lc-intermediate { background:rgba(0,212,255,.08); color:var(--cyan); }
+.lc-advanced     { background:rgba(255,140,0,.1);  color:var(--orange); }
+.lc-expert       { background:rgba(240,165,0,.1);  color:var(--gold); }
+.lc-master       { background:rgba(168,85,247,.1); color:var(--purple); }
+
+.tab-count {
+  background:rgba(255,140,0,.2); color:var(--orange);
+  border-radius:4px; padding:1px 6px; font-size:10px; margin-left:4px;
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-badge">N</div>
+    <div class="sidebar-title">NIA GAME <span>Admin Office</span></div>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav"></nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="doLogout()">
+      <i class="fas fa-sign-out-alt"></i>
+      <span class="logout-label">Sign Out</span>
+    </button>
+  </div>
+</aside>
+
+<!-- HEADER -->
+<header class="header" id="header">
+  <div class="header-left">
+    <div class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+    <div class="breadcrumb">
+      <i class="fas fa-home" style="font-size:12px;"></i>
+      <span id="breadcrumb-text">Game Approval</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="notif-btn"><i class="fas fa-bell"></i><div class="notif-dot"></div></div>
+    <div class="user-pill">
+      <div class="user-avatar" id="header-avatar"></div>
+      <div class="user-info">
+        <div class="uname" id="header-name"></div>
+        <div class="urole" id="header-role"></div>
+      </div>
+      <div class="role-badge" id="header-badge"></div>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main" id="main">
+
+  <div class="page-header">
+    <div class="page-title">
+      Game Approval
+      <span>Review user-submitted game topics and publish approved ones</span>
+    </div>
+    <div class="page-actions">
+      <select class="filter-select" id="filter-subject" onchange="renderGames()">
+        <option value="">All Subjects</option>
+        <option value="Algorithms">Algorithms</option>
+        <option value="Data Structures">Data Structures</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="perm-notice"></div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="pending"  onclick="switchTab('pending',this)">
+      Pending Review <span class="tab-count" id="count-pending">5</span>
+    </div>
+    <div class="tab" data-tab="approved" onclick="switchTab('approved',this)">Approved</div>
+    <div class="tab" data-tab="rejected" onclick="switchTab('rejected',this)">Rejected</div>
+  </div>
+
+  <div class="games-grid" id="games-grid"></div>
+
+</main>
+
+<!-- MODAL: Review Game -->
+<div class="modal-overlay" id="modal-review">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="review-title">Review Game Submission</div>
+      <button class="modal-close" onclick="closeModal('modal-review')"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="review-body"></div>
+    <div class="form-group">
+      <label>Reviewer Notes (optional)</label>
+      <textarea class="form-control" rows="3" id="review-notes" style="padding:12px 14px;" placeholder="Add notes for the submitter..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-review')">Cancel</button>
+      <button class="btn btn-danger" onclick="rejectGame()"><i class="fas fa-times-circle"></i> Reject</button>
+      <button class="btn btn-success" onclick="approveGame()"><i class="fas fa-check-circle"></i> Approve &amp; Publish</button>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+/* ── Games Page JS ── */
+const session = requireAuth();
+buildSidebar('games', session.role);
+buildHeader('Game Approval', session);
+
+if (!can(session,'approve')) {
+  showPermNotice('perm-notice','You have <strong>view-only</strong> access. Approving or rejecting games requires Admin privileges.');
+}
+
+let currentTab = 'pending';
+let reviewingId = null;
+
+const levelCls = {
+  Basic:'lc-basic', Intermediate:'lc-intermediate',
+  Advanced:'lc-advanced', Expert:'lc-expert', Master:'lc-master'
+};
+
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderGames();
+}
+
+function renderGames() {
+  const subject = document.getElementById('filter-subject').value;
+  let games = (MOCK.games[currentTab] || []).filter(g => !subject || g.subject === subject);
+
+  // Update pending count badge
+  document.getElementById('count-pending').textContent = MOCK.games.pending.length;
+
+  if (!games.length) {
+    document.getElementById('games-grid').innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;">
+        <i class="fas fa-check-double"></i>
+        <p>No games in this category.</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('games-grid').innerHTML = games.map(g => `
+    <div class="game-card">
+      <div class="game-card-top">
+        <div>
+          <div class="game-name">${g.name}</div>
+          <div class="game-meta">
+            <span><i class="fas fa-file-code"></i>${g.file}</span>
+            <span><i class="fas fa-book"></i>${g.subject}</span>
+          </div>
+        </div>
+        <span class="level-chip ${levelCls[g.level] || 'lc-basic'}">${g.level}</span>
+      </div>
+      <div class="game-desc">${g.desc}</div>
+      <div class="game-meta">
+        <span><i class="fas fa-user"></i>${g.author}</span>
+        <span><i class="fas fa-calendar"></i>${g.submitted}</span>
+      </div>
+      <div class="game-actions">
+        <button class="btn btn-outline btn-sm" onclick="previewGame(${g.id})">
+          <i class="fas fa-eye"></i> Preview
+        </button>
+        ${currentTab === 'pending' && can(session,'approve') ? `
+          <button class="btn btn-success btn-sm" onclick="openReview(${g.id})">
+            <i class="fas fa-check-circle"></i> Review
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="quickReject(${g.id})">
+            <i class="fas fa-times-circle"></i> Reject
+          </button>
+        ` : ''}
+        ${currentTab === 'approved' ? `
+          <span class="status-pill status-approved"><span class="status-dot"></span>Published</span>
+        ` : ''}
+        ${currentTab === 'rejected' ? `
+          <span class="status-pill status-blocked"><span class="status-dot"></span>Rejected</span>
+        ` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function openReview(id) {
+  const g = [...MOCK.games.pending,...MOCK.games.approved,...MOCK.games.rejected].find(x=>x.id===id);
+  if (!g) return;
+  reviewingId = id;
+  document.getElementById('review-title').textContent = 'Review: ' + g.name;
+  document.getElementById('review-notes').value = '';
+  document.getElementById('review-body').innerHTML = `
+    <div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;">
+      <div class="game-name" style="margin-bottom:8px;">${g.name}</div>
+      <div class="game-meta" style="margin-bottom:10px;">
+        <span><i class="fas fa-book"></i>${g.subject}</span>
+        <span><i class="fas fa-signal"></i>${g.level}</span>
+        <span><i class="fas fa-user"></i>${g.author}</span>
+        <span><i class="fas fa-calendar"></i>${g.submitted}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">${g.desc}</div>
+    </div>`;
+  openModal('modal-review');
+}
+
+function approveGame() {
+  if (!reviewingId) return;
+  const idx = MOCK.games.pending.findIndex(x => x.id === reviewingId);
+  if (idx > -1) {
+    const g = MOCK.games.pending.splice(idx, 1)[0];
+    MOCK.games.approved.push(g);
+  }
+  closeModal('modal-review');
+  renderGames();
+}
+
+function rejectGame() {
+  if (!reviewingId) return;
+  const idx = MOCK.games.pending.findIndex(x => x.id === reviewingId);
+  if (idx > -1) {
+    const g = MOCK.games.pending.splice(idx, 1)[0];
+    MOCK.games.rejected.push(g);
+  }
+  closeModal('modal-review');
+  renderGames();
+}
+
+function quickReject(id) {
+  if (!confirm('Reject this game submission?')) return;
+  reviewingId = id;
+  rejectGame();
+}
+
+function previewGame(id) {
+  const g = [...MOCK.games.pending,...MOCK.games.approved,...MOCK.games.rejected].find(x=>x.id===id);
+  if (g) alert(`Preview: games/${g.file}\n\nIn production, this opens the game file in a preview iframe.`);
+}
+
+// Initial render
+renderGames();
+</script>
+</body>
+</html>
