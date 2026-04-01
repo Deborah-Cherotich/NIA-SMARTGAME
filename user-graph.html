@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NIA Game Admin | User Graph</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    .back-to-users-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--text-muted); font-size: 13px; font-weight: 600;
+      text-decoration: none; letter-spacing: 0.3px;
+      padding: 8px 14px; border: 1px solid var(--border);
+      border-radius: 8px; background: var(--bg-card);
+      transition: all var(--tr); margin-bottom: 24px;
+    }
+    .back-to-users-link:hover { color: var(--gold); border-color: var(--gold); }
+
+    .user-profile-banner {
+      display: flex; align-items: center; gap: 18px;
+      background: var(--bg-card2); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 22px 28px; margin-bottom: 24px;
+    }
+    .user-initials-avatar {
+      width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900;
+    }
+    .user-profile-details { flex: 1; }
+    .user-full-name { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+    .user-email-address { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+    .user-headline-stats { display: flex; gap: 28px; flex-shrink: 0; }
+    .headline-stat-item { text-align: right; }
+    .headline-stat-value { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700; color: var(--gold); }
+    .headline-stat-label { font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; }
+
+    .activity-summary-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 24px;
+    }
+    .summary-stat-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .summary-stat-value { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; }
+    .summary-stat-label { font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+
+    .games-chart-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px;
+    }
+    .games-chart-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;
+    }
+    .games-chart-title { font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+    .games-chart-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+    .time-range-tabs { display: flex; gap: 4px; }
+    .time-range-tab {
+      padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted);
+      font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all var(--tr);
+    }
+    .time-range-tab.active,
+    .time-range-tab:hover {
+      background: rgba(240,165,0,.1); border-color: rgba(240,165,0,.3); color: var(--gold);
+    }
+
+    .chart-canvas-wrapper { position: relative; height: 340px; }
+
+    .theta-axis-note {
+      font-size: 11px; color: var(--text-dim);
+      letter-spacing: 0.3px; text-align: center; margin-top: 10px;
+    }
+    .theta-axis-note .theta-symbol { color: var(--gold); font-style: italic; }
+
+    @media (max-width: 768px) {
+      .activity-summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .user-headline-stats   { gap: 16px; }
+      .user-profile-banner   { flex-wrap: wrap; }
+      .games-chart-header    { flex-direction: column; align-items: flex-start; gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-badge">N</div>
+      <div class="sidebar-title">NIA GAME <span>Admin Office</span></div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i>
+        <span class="logout-label">Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <header class="header" id="header">
+    <div class="header-left">
+      <div class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+      <div class="breadcrumb">
+        <i class="fas fa-home" style="font-size:12px;"></i>
+        <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+        <a href="users.html" style="color:var(--text-muted);text-decoration:none;">User Management</a>
+        <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+        <span id="breadcrumb-page-label">Activity Graph</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="notif-btn">
+        <i class="fas fa-bell"></i>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="user-pill">
+        <div class="user-avatar" id="header-avatar"></div>
+        <div class="user-info">
+          <div class="uname" id="header-name"></div>
+          <div class="urole" id="header-role"></div>
+        </div>
+        <div class="role-badge" id="header-badge"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+
+    <a class="back-to-users-link" href="users.html">
+      <i class="fas fa-arrow-left"></i> Back to User Management
+    </a>
+
+    <!-- User profile banner -->
+    <div class="user-profile-banner">
+      <div class="user-initials-avatar" id="user-initials-avatar"></div>
+      <div class="user-profile-details">
+        <div class="user-full-name"    id="user-full-name">—</div>
+        <div class="user-email-address" id="user-email-address">—</div>
+        <div style="margin-top:8px;"   id="user-level-badge"></div>
+      </div>
+      <div class="user-headline-stats">
+        <div class="headline-stat-item">
+          <div class="headline-stat-value" id="total-games-played">—</div>
+          <div class="headline-stat-label">Total Games</div>
+        </div>
+        <div class="headline-stat-item">
+          <div class="headline-stat-value" id="average-score-percent">—</div>
+          <div class="headline-stat-label">Avg Score</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary stat cards derived from the visible chart range -->
+    <div class="activity-summary-grid">
+      <div class="summary-stat-card">
+        <div class="summary-stat-value" id="peak-theta-period" style="color:var(--purple);">—</div>
+        <div class="summary-stat-label">Peak θ (Most Active)</div>
+      </div>
+      <div class="summary-stat-card">
+        <div class="summary-stat-value" id="average-games-per-period" style="color:var(--cyan);">—</div>
+        <div class="summary-stat-label">Avg Games / Period</div>
+      </div>
+      <div class="summary-stat-card">
+        <div class="summary-stat-value" id="longest-active-streak" style="color:var(--green);">—</div>
+        <div class="summary-stat-label">Longest Streak</div>
+      </div>
+    </div>
+
+    <!-- Line graph -->
+    <div class="games-chart-card">
+      <div class="games-chart-header">
+        <div>
+          <div class="games-chart-title">Games Played Over Time</div>
+          <div class="games-chart-subtitle">Game activity per period plotted against theta (θ) — time progression index</div>
+        </div>
+        <div class="time-range-tabs">
+          <button class="time-range-tab active" onclick="switchTimeRange('weekly', this)">Weekly</button>
+          <button class="time-range-tab"        onclick="switchTimeRange('monthly', this)">Monthly</button>
+          <button class="time-range-tab"        onclick="switchTimeRange('allTime', this)">All Time</button>
+        </div>
+      </div>
+
+      <div class="chart-canvas-wrapper">
+        <canvas id="games-played-chart"></canvas>
+      </div>
+
+      <p class="theta-axis-note">
+        <span class="theta-symbol">θ (theta)</span> — time progression index.
+        Lower θ = earlier activity &nbsp;|&nbsp; Higher θ = more recent activity.
+      </p>
+    </div>
+
+  </main>
+
+  <script src="shared.js"></script>
+  <script>
+    const adminSession = requireAuth();
+    buildSidebar('users', adminSession.role);
+    buildHeader('User Graph', adminSession);
+
+    /* Resolve the learner from the ?id= query param */
+    const urlParams      = new URLSearchParams(window.location.search);
+    const selectedUserId = parseInt(urlParams.get('id'), 10);
+    const selectedUser   = MOCK.users.find(user => user.id === selectedUserId);
+
+    if (!selectedUser) {
+      document.getElementById('main').innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-user-slash"></i>
+          <p>User not found. <a href="users.html" style="color:var(--gold);">Return to User Management</a></p>
+        </div>`;
+    }
+
+    /* Accent colour per proficiency level */
+    const levelAccentColour = {
+      Basic: '#00e676', Intermediate: '#00d4ff',
+      Advanced: '#ff8c00', Expert: '#f0a500', Master: '#a855f7',
+    };
+
+    /* Populate the profile banner */
+    if (selectedUser) {
+      const accentColour = levelAccentColour[selectedUser.level] || '#f0a500';
+      const initials     = selectedUser.name.split(' ').map(part => part[0]).join('');
+
+      const avatarEl = document.getElementById('user-initials-avatar');
+      avatarEl.textContent   = initials;
+      avatarEl.style.cssText = `background:${accentColour}22; color:${accentColour};`;
+
+      document.getElementById('user-full-name').textContent        = selectedUser.name;
+      document.getElementById('user-email-address').textContent    = selectedUser.email;
+      document.getElementById('total-games-played').textContent    = selectedUser.games;
+      document.getElementById('average-score-percent').textContent = selectedUser.score + '%';
+      document.getElementById('breadcrumb-page-label').textContent = selectedUser.name + ' — Graph';
+      document.getElementById('user-level-badge').innerHTML = `
+        <span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:4px;
+                     background:${accentColour}18;color:${accentColour};">
+          ${selectedUser.level}
+        </span>`;
+    }
+
+    /*
+      Static games-played data per user and time range.
+      Each entry holds:
+        thetaLabels    — x-axis tick labels
+        gamesPerPeriod — games played per theta period (y-axis values)
+        periodLabel    — shown in the tooltip title, e.g. "Week θ3"
+    */
+    const userActivityData = {
+      /* Alice Mwamba — Advanced, 34 games */
+      1: {
+        weekly:  { periodLabel: 'Week',   thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12'], gamesPerPeriod: [1,2,2,3,2,3,4,3,4,4,5,1] },
+        monthly: { periodLabel: 'Month',  thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8'],                         gamesPerPeriod: [2,3,4,4,5,6,7,3] },
+        allTime: { periodLabel: 'Period', thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12','θ13','θ14','θ15','θ16'], gamesPerPeriod: [0,1,1,2,1,2,3,2,3,3,4,4,3,4,4,1] },
+      },
+      /* Brian Juma — Intermediate, 18 games */
+      2: {
+        weekly:  { periodLabel: 'Week',   thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12'], gamesPerPeriod: [0,1,1,2,1,2,2,1,2,2,2,2] },
+        monthly: { periodLabel: 'Month',  thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8'],                         gamesPerPeriod: [1,2,2,2,2,3,3,3] },
+        allTime: { periodLabel: 'Period', thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12','θ13','θ14','θ15','θ16'], gamesPerPeriod: [0,0,1,1,1,1,2,1,2,2,2,2,1,2,0,0] },
+      },
+      /* Caroline Nkusi — Basic, 5 games */
+      3: {
+        weekly:  { periodLabel: 'Week',   thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12'], gamesPerPeriod: [0,0,0,0,0,0,0,0,0,1,2,2] },
+        monthly: { periodLabel: 'Month',  thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8'],                         gamesPerPeriod: [0,0,0,0,0,0,2,3] },
+        allTime: { periodLabel: 'Period', thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12','θ13','θ14','θ15','θ16'], gamesPerPeriod: [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2] },
+      },
+      /* David Osei — Expert, 91 games */
+      4: {
+        weekly:  { periodLabel: 'Week',   thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12'], gamesPerPeriod: [4,5,6,7,7,8,8,9,9,10,9,9] },
+        monthly: { periodLabel: 'Month',  thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8'],                         gamesPerPeriod: [8,9,10,11,11,13,14,15] },
+        allTime: { periodLabel: 'Period', thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12','θ13','θ14','θ15','θ16'], gamesPerPeriod: [2,3,4,5,5,6,6,7,7,7,8,8,7,8,8,0] },
+      },
+      /* Esther Wanjiku — Master, 143 games */
+      5: {
+        weekly:  { periodLabel: 'Week',   thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12'], gamesPerPeriod: [8,9,10,11,12,12,13,13,14,14,12,11] },
+        monthly: { periodLabel: 'Month',  thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8'],                         gamesPerPeriod: [12,14,16,17,18,20,22,24] },
+        allTime: { periodLabel: 'Period', thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12','θ13','θ14','θ15','θ16'], gamesPerPeriod: [4,5,6,7,8,9,10,10,11,11,12,12,11,11,12,4] },
+      },
+      /* Felix Banda — Basic, 2 games (blocked) */
+      6: {
+        weekly:  { periodLabel: 'Week',   thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12'], gamesPerPeriod: [0,0,0,0,0,0,0,0,0,0,1,1] },
+        monthly: { periodLabel: 'Month',  thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8'],                         gamesPerPeriod: [0,0,0,0,0,0,0,2] },
+        allTime: { periodLabel: 'Period', thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12','θ13','θ14','θ15','θ16'], gamesPerPeriod: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1] },
+      },
+      /* Grace Amara — Intermediate, 22 games */
+      7: {
+        weekly:  { periodLabel: 'Week',   thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12'], gamesPerPeriod: [1,1,2,2,2,2,2,2,2,2,2,2] },
+        monthly: { periodLabel: 'Month',  thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8'],                         gamesPerPeriod: [1,2,3,3,3,3,4,3] },
+        allTime: { periodLabel: 'Period', thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12','θ13','θ14','θ15','θ16'], gamesPerPeriod: [0,1,1,1,2,1,2,2,1,2,2,2,1,2,2,0] },
+      },
+      /* Hassan Mbeki — Advanced, 57 games (pending) */
+      8: {
+        weekly:  { periodLabel: 'Week',   thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12'], gamesPerPeriod: [2,3,4,4,5,5,6,5,5,6,6,6] },
+        monthly: { periodLabel: 'Month',  thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8'],                         gamesPerPeriod: [4,6,7,7,8,8,9,8] },
+        allTime: { periodLabel: 'Period', thetaLabels: ['θ1','θ2','θ3','θ4','θ5','θ6','θ7','θ8','θ9','θ10','θ11','θ12','θ13','θ14','θ15','θ16'], gamesPerPeriod: [1,2,3,3,4,4,4,4,4,5,5,5,4,5,4,0] },
+      },
+    };
+
+    const currentUserData = userActivityData[selectedUserId] || null;
+
+    /* Compute and display the four summary cards from the active range's data */
+    function updateSummaryCards(gamesPerPeriod) {
+      const peakCount    = Math.max(...gamesPerPeriod);
+      const peakIndex    = gamesPerPeriod.indexOf(peakCount) + 1; // 1-based
+      const totalGames   = gamesPerPeriod.reduce((sum, n) => sum + n, 0);
+      const averageGames = (totalGames / gamesPerPeriod.length).toFixed(1);
+
+      /* Longest streak: most consecutive periods with at least one game played */
+      let longestStreak = 0;
+      let currentStreak = 0;
+      gamesPerPeriod.forEach(count => {
+        if (count > 0) { currentStreak++; longestStreak = Math.max(longestStreak, currentStreak); }
+        else { currentStreak = 0; }
+      });
+
+      document.getElementById('peak-theta-period').textContent        = `θ${peakIndex} (${peakCount}g)`;
+      document.getElementById('average-games-per-period').textContent = averageGames;
+      document.getElementById('longest-active-streak').textContent    = longestStreak + ' periods';
+    }
+
+    /* Holds the active Chart.js instance; destroyed before each re-render */
+    let activeChartInstance = null;
+
+    function renderGamesChart(timeRangeKey) {
+      if (!currentUserData) return;
+
+      const { thetaLabels, gamesPerPeriod, periodLabel } = currentUserData[timeRangeKey];
+
+      updateSummaryCards(gamesPerPeriod);
+
+      const canvas  = document.getElementById('games-played-chart');
+      const context = canvas.getContext('2d');
+
+      if (activeChartInstance) activeChartInstance.destroy();
+
+      /* Purple gradient fill under the line */
+      const areaGradient = context.createLinearGradient(0, 0, 0, 320);
+      areaGradient.addColorStop(0,   'rgba(168,85,247,0.35)');
+      areaGradient.addColorStop(0.6, 'rgba(168,85,247,0.08)');
+      areaGradient.addColorStop(1,   'rgba(168,85,247,0.00)');
+
+      activeChartInstance = new Chart(context, {
+        type: 'line',
+        data: {
+          labels: thetaLabels,
+          datasets: [{
+            label: 'Games Played',
+            data: gamesPerPeriod,
+            borderColor: '#a855f7',
+            backgroundColor: areaGradient,
+            borderWidth: 2.5,
+            pointBackgroundColor: '#a855f7',
+            pointBorderColor: '#0f1528',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.42,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f1528',
+              borderColor: 'rgba(240,165,0,0.2)',
+              borderWidth: 1,
+              titleFont: { family: 'Orbitron', size: 11 },
+              bodyFont:  { family: 'Rajdhani', size: 13 },
+              titleColor: '#f0a500',
+              bodyColor:  '#e8ecf0',
+              padding: 12,
+              callbacks: {
+                title: items => `${periodLabel} ${items[0].label}`,
+                label: item  => `  Games played: ${item.raw}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'θ  (Theta — Time Progression Index)',
+                color: '#7a8499',
+                font: { family: 'Rajdhani', size: 12, weight: '600', style: 'italic' },
+                padding: { top: 10 },
+              },
+              grid:   { color: 'rgba(255,255,255,0.04)' },
+              ticks:  { color: '#7a8499', font: { family: 'Rajdhani', size: 11 } },
+              border: { color: 'rgba(255,255,255,0.08)' },
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Games Played',
+                color: '#7a8499',
+                font: { family: 'Rajdhani', size: 12, weight: '600' },
+                padding: { bottom: 10 },
+              },
+              grid:   { color: 'rgba(255,255,255,0.04)' },
+              ticks: {
+                color: '#7a8499',
+                font: { family: 'Rajdhani', size: 11 },
+                stepSize: 1,
+                callback: value => Number.isInteger(value) ? value : null,
+              },
+              border: { color: 'rgba(255,255,255,0.08)' },
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    }
+
+    function switchTimeRange(timeRangeKey, clickedTab) {
+      document.querySelectorAll('.time-range-tab').forEach(tab => tab.classList.remove('active'));
+      clickedTab.classList.add('active');
+      renderGamesChart(timeRangeKey);
+    }
+
+    if (selectedUser && currentUserData) renderGamesChart('weekly');
+  </script>
+</body>
+</html>

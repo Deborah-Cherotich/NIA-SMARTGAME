@@ -8,12 +8,17 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
 <link rel="stylesheet" href="shared.css"/>
 <style>
-/* ── Users page specific styles ── */
-.level-badge {
-  font-size:12px; font-weight:700; padding:2px 8px; border-radius:4px;
+.level-badge { font-size:12px; font-weight:700; padding:2px 8px; border-radius:4px; }
+.score-cell  { display:flex; align-items:center; gap:8px; }
+.score-mini  { flex:1; min-width:50px; }
+
+/* Purple tint for the chart icon button */
+.btn-chart { border-color:rgba(168,85,247,.35); color:var(--purple); }
+.btn-chart:hover {
+  background:rgba(168,85,247,.12);
+  border-color:var(--purple);
+  box-shadow:0 0 10px rgba(168,85,247,.25);
 }
-.score-cell { display:flex; align-items:center; gap:8px; }
-.score-mini { flex:1; min-width:50px; }
 </style>
 </head>
 <body>
@@ -69,14 +74,14 @@
     <div class="page-actions" id="page-actions"></div>
   </div>
 
-  <!-- Permission notice injected here for staff -->
   <div id="perm-notice"></div>
 
   <div class="card">
     <div class="filter-bar">
       <div class="search-wrap">
         <i class="fas fa-search"></i>
-        <input class="search-input" type="text" id="search-input" placeholder="Search users by name or email..." oninput="filterTable()"/>
+        <input class="search-input" type="text" id="search-input"
+               placeholder="Search users by name or email..." oninput="filterTable()"/>
       </div>
       <select class="filter-select" id="filter-status" onchange="filterTable()">
         <option value="">All Status</option>
@@ -93,6 +98,7 @@
         <option value="Master">Master</option>
       </select>
     </div>
+
     <div class="table-wrap">
       <table>
         <thead>
@@ -110,6 +116,7 @@
         <tbody id="users-tbody"></tbody>
       </table>
     </div>
+
     <div style="padding:14px 22px;border-top:1px solid var(--border);font-size:13px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;">
       <span id="row-count">Showing 8 of 8 users</span>
       <div style="display:flex;gap:6px;">
@@ -157,46 +164,42 @@
 
 <script src="shared.js"></script>
 <script>
-/* ── Users Page JS ── */
 const session = requireAuth();
 buildSidebar('users', session.role);
 buildHeader('User Management', session);
 
-// Page actions (only for admin+)
-if (can(session,'create')) {
+if (can(session, 'create')) {
   document.getElementById('page-actions').innerHTML = `
     <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
     <button class="btn btn-primary" onclick="openAddUser()"><i class="fas fa-user-plus"></i> Add User</button>`;
 }
 
-// Staff notice
-if (!can(session,'edit')) {
-  showPermNotice('perm-notice','You have <strong>view-only</strong> access to user data. Contact an Admin to make changes.');
+if (!can(session, 'edit')) {
+  showPermNotice('perm-notice', 'You have <strong>view-only</strong> access to user data. Contact an Admin to make changes.');
 }
 
-// ── Level Colors ──
-const lvlColor = {
-  Basic:'var(--green)', Intermediate:'var(--cyan)',
-  Advanced:'var(--orange)', Expert:'var(--gold)', Master:'var(--purple)'
+const levelColour = {
+  Basic: 'var(--green)', Intermediate: 'var(--cyan)',
+  Advanced: 'var(--orange)', Expert: 'var(--gold)', Master: 'var(--purple)'
 };
 
-let activeUsers = [...MOCK.users];
+let filteredUsers = [...MOCK.users];
 
-function renderTable(data) {
-  document.getElementById('row-count').textContent = `Showing ${data.length} of ${MOCK.users.length} users`;
-  document.getElementById('users-tbody').innerHTML = data.map(u => `
+function renderTable(users) {
+  document.getElementById('row-count').textContent = `Showing ${users.length} of ${MOCK.users.length} users`;
+  document.getElementById('users-tbody').innerHTML = users.map(u => `
     <tr>
       <td>
         <div class="user-mini">
-          <div class="ava" style="background:${lvlColor[u.level]}22;color:${lvlColor[u.level]};">
-            ${u.name.split(' ').map(n=>n[0]).join('')}
+          <div class="ava" style="background:${levelColour[u.level]}22;color:${levelColour[u.level]};">
+            ${u.name.split(' ').map(n => n[0]).join('')}
           </div>
           <span>${u.name}</span>
         </div>
       </td>
       <td style="color:var(--text-muted);">${u.email}</td>
       <td>
-        <span class="level-badge" style="background:${lvlColor[u.level]}18;color:${lvlColor[u.level]};">
+        <span class="level-badge" style="background:${levelColour[u.level]}18;color:${levelColour[u.level]};">
           ${u.level}
         </span>
       </td>
@@ -206,7 +209,7 @@ function renderTable(data) {
           <span>${u.score}%</span>
           <div class="score-mini">
             <div class="progress-track">
-              <div class="progress-fill" style="width:${u.score}%;background:${u.score>=85?'var(--green)':u.score>=60?'var(--gold)':'var(--red)'};"></div>
+              <div class="progress-fill" style="width:${u.score}%;background:${u.score >= 85 ? 'var(--green)' : u.score >= 60 ? 'var(--gold)' : 'var(--red)'};"></div>
             </div>
           </div>
         </div>
@@ -219,45 +222,58 @@ function renderTable(data) {
       <td style="color:var(--text-muted);font-size:12px;">${u.reg}</td>
       <td>
         <div class="action-row">
-          <button class="btn btn-outline btn-sm btn-icon" title="View Details"><i class="fas fa-eye"></i></button>
-          ${can(session,'edit') ? `
-            ${u.status === 'pending' ? `<button class="btn btn-success btn-sm btn-icon" title="Approve" onclick="approveUser(${u.id})"><i class="fas fa-check"></i></button>` : ''}
-            <button class="btn btn-cyan btn-sm btn-icon" title="Edit" onclick="openEditUser(${u.id})"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-outline btn-sm btn-icon" title="View Details"
+                  onclick="window.location.href='view-user.html?id=${u.id}'">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="btn btn-outline btn-sm btn-icon btn-chart" title="View Activity Graph"
+                  onclick="window.location.href='user-graph.html?id=${u.id}'">
+            <i class="fas fa-chart-line"></i>
+          </button>
+          ${can(session, 'edit') ? `
+            ${u.status === 'pending' ? `
+              <button class="btn btn-success btn-sm btn-icon" title="Approve" onclick="approveUser(${u.id})">
+                <i class="fas fa-check"></i>
+              </button>` : ''}
+            <button class="btn btn-cyan btn-sm btn-icon" title="Edit" onclick="openEditUser(${u.id})">
+              <i class="fas fa-edit"></i>
+            </button>
           ` : ''}
-          ${can(session,'delete') ? `
-            <button class="btn btn-danger btn-sm btn-icon" title="Delete" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button>
+          ${can(session, 'delete') ? `
+            <button class="btn btn-danger btn-sm btn-icon" title="Delete" onclick="deleteUser(${u.id})">
+              <i class="fas fa-trash"></i>
+            </button>
           ` : ''}
         </div>
       </td>
     </tr>`).join('');
 }
 
-// ── Filters ──
 function filterTable() {
-  const q      = document.getElementById('search-input').value.toLowerCase();
-  const status = document.getElementById('filter-status').value;
-  const level  = document.getElementById('filter-level').value;
-  activeUsers = MOCK.users.filter(u =>
-    (!q      || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
-    (!status || u.status === status) &&
-    (!level  || u.level  === level)
+  const query       = document.getElementById('search-input').value.toLowerCase();
+  const statusValue = document.getElementById('filter-status').value;
+  const levelValue  = document.getElementById('filter-level').value;
+
+  filteredUsers = MOCK.users.filter(u =>
+    (!query       || u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)) &&
+    (!statusValue || u.status === statusValue) &&
+    (!levelValue  || u.level  === levelValue)
   );
-  renderTable(activeUsers);
+  renderTable(filteredUsers);
 }
 
-// ── Actions ──
 function approveUser(id) {
-  const u = MOCK.users.find(x => x.id === id);
-  if (u) { u.status = 'active'; filterTable(); }
+  const user = MOCK.users.find(u => u.id === id);
+  if (user) { user.status = 'active'; filterTable(); }
 }
+
 function deleteUser(id) {
   if (confirm('Are you sure you want to delete this user?')) {
-    const i = MOCK.users.findIndex(x => x.id === id);
-    if (i > -1) { MOCK.users.splice(i,1); filterTable(); }
+    const index = MOCK.users.findIndex(u => u.id === id);
+    if (index > -1) { MOCK.users.splice(index, 1); filterTable(); }
   }
 }
 
-// ── Modal ──
 let editingUserId = null;
 
 function openAddUser() {
@@ -267,22 +283,22 @@ function openAddUser() {
   document.getElementById('u-email').value = '';
   openModal('modal-user');
 }
+
 function openEditUser(id) {
-  const u = MOCK.users.find(x => x.id === id);
+  const user = MOCK.users.find(u => u.id === id);
   editingUserId = id;
   document.getElementById('modal-user-title').textContent = 'Edit User';
-  document.getElementById('u-name').value  = u.name;
-  document.getElementById('u-email').value = u.email;
-  document.getElementById('u-status').value = u.status.charAt(0).toUpperCase()+u.status.slice(1);
+  document.getElementById('u-name').value   = user.name;
+  document.getElementById('u-email').value  = user.email;
+  document.getElementById('u-status').value = user.status.charAt(0).toUpperCase() + user.status.slice(1);
   openModal('modal-user');
 }
+
 function saveUser() {
-  // In production: POST/PUT to your API
   closeModal('modal-user');
   filterTable();
 }
 
-// Initial render
 renderTable(MOCK.users);
 </script>
 </body>

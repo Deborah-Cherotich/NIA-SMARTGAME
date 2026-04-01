@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NIA Game Admin | View User</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+
+  <style>
+    .back-to-users-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--text-muted); font-size: 13px; font-weight: 600;
+      text-decoration: none; letter-spacing: 0.3px;
+      padding: 8px 14px; border: 1px solid var(--border);
+      border-radius: 8px; background: var(--bg-card);
+      transition: all var(--tr); margin-bottom: 24px;
+    }
+    .back-to-users-link:hover { color: var(--gold); border-color: var(--gold); }
+
+    /* Two-column layout: profile card on the left, details on the right */
+    .user-detail-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Left column — avatar, name, level badge, quick actions */
+    .user-identity-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      text-align: center;
+    }
+    .user-large-avatar {
+      width: 88px; height: 88px; border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900;
+    }
+    .user-display-name {
+      font-family: 'Orbitron', sans-serif; font-size: 17px; font-weight: 700; color: var(--text);
+    }
+    .user-display-email { font-size: 13px; color: var(--text-muted); }
+
+    .user-level-pill {
+      font-size: 12px; font-weight: 700; padding: 4px 14px;
+      border-radius: 99px; letter-spacing: 0.5px;
+    }
+
+    .identity-divider {
+      width: 100%; height: 1px; background: var(--border); margin: 4px 0;
+    }
+
+    /* Registered date row inside the identity card */
+    .identity-meta-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--text-muted); width: 100%;
+    }
+    .identity-meta-row i { color: var(--gold); width: 16px; text-align: center; }
+
+    /* Quick-action buttons inside the identity card */
+    .identity-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 4px; }
+
+    /* Right column — stat grid + info sections */
+    .user-detail-sections { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Stat grid: 4 numbers across the top of the right column */
+    .user-stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    }
+    .user-stat-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .user-stat-value { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; }
+    .user-stat-label { font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+
+    /* Info card used for Account Info and Score Breakdown sections */
+    .user-info-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+    }
+    .user-info-card-header {
+      padding: 16px 22px; border-bottom: 1px solid var(--border);
+      font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700;
+      color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    /* Each labelled row inside an info card */
+    .info-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row-label { color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 10px; }
+    .info-row-label i { color: var(--gold); width: 16px; text-align: center; }
+    .info-row-value { font-weight: 600; color: var(--text); }
+
+    /* Score progress bar inside the score breakdown row */
+    .score-bar-wrap { display: flex; align-items: center; gap: 12px; }
+    .score-bar-track {
+      width: 140px; height: 7px;
+      background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden;
+    }
+    .score-bar-fill { height: 100%; border-radius: 99px; }
+
+    @media (max-width: 900px) {
+      .user-detail-layout { grid-template-columns: 1fr; }
+      .user-stats-grid    { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-badge">N</div>
+      <div class="sidebar-title">NIA GAME <span>Admin Office</span></div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i>
+        <span class="logout-label">Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <header class="header" id="header">
+    <div class="header-left">
+      <div class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+      <div class="breadcrumb">
+        <i class="fas fa-home" style="font-size:12px;"></i>
+        <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+        <a href="users.html" style="color:var(--text-muted);text-decoration:none;">User Management</a>
+        <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+        <span id="breadcrumb-page-label">View User</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="notif-btn">
+        <i class="fas fa-bell"></i>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="user-pill">
+        <div class="user-avatar" id="header-avatar"></div>
+        <div class="user-info">
+          <div class="uname" id="header-name"></div>
+          <div class="urole" id="header-role"></div>
+        </div>
+        <div class="role-badge" id="header-badge"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+
+    <a class="back-to-users-link" href="users.html">
+      <i class="fas fa-arrow-left"></i> Back to User Management
+    </a>
+
+    <div class="user-detail-layout" id="user-detail-layout">
+
+      <!-- Left: identity card -->
+      <div class="user-identity-card">
+        <div class="user-large-avatar" id="user-large-avatar"></div>
+        <div>
+          <div class="user-display-name" id="user-display-name">—</div>
+          <div class="user-display-email" id="user-display-email" style="margin-top:4px;">—</div>
+        </div>
+        <div class="user-level-pill" id="user-level-pill">—</div>
+
+        <div class="identity-divider"></div>
+
+        <div class="identity-meta-row">
+          <i class="fas fa-calendar-alt"></i>
+          <span>Registered: <strong id="user-registration-date">—</strong></span>
+        </div>
+        <div class="identity-meta-row">
+          <i class="fas fa-circle" id="user-status-dot" style="font-size:8px;"></i>
+          <span>Status: <strong id="user-status-label">—</strong></span>
+        </div>
+
+        <div class="identity-divider"></div>
+
+        <!-- Quick-action buttons shown based on the admin's role permissions -->
+        <div class="identity-actions" id="identity-actions"></div>
+      </div>
+
+      <!-- Right: stats + detail sections -->
+      <div class="user-detail-sections">
+
+        <!-- Four headline numbers -->
+        <div class="user-stats-grid">
+          <div class="user-stat-card">
+            <div class="user-stat-value" id="stat-games-played" style="color:var(--cyan);">—</div>
+            <div class="user-stat-label">Games Played</div>
+          </div>
+          <div class="user-stat-card">
+            <div class="user-stat-value" id="stat-avg-score" style="color:var(--gold);">—</div>
+            <div class="user-stat-label">Avg Score</div>
+          </div>
+          <div class="user-stat-card">
+            <div class="user-stat-value" id="stat-level" style="color:var(--purple);">—</div>
+            <div class="user-stat-label">Level</div>
+          </div>
+          <div class="user-stat-card">
+            <div class="user-stat-value" id="stat-status" style="color:var(--green);">—</div>
+            <div class="user-stat-label">Account Status</div>
+          </div>
+        </div>
+
+        <!-- Account information -->
+        <div class="user-info-card">
+          <div class="user-info-card-header"><i class="fas fa-id-card" style="margin-right:8px;"></i>Account Information</div>
+          <div class="info-row">
+            <div class="info-row-label"><i class="fas fa-user"></i> Full Name</div>
+            <div class="info-row-value" id="info-full-name">—</div>
+          </div>
+          <div class="info-row">
+            <div class="info-row-label"><i class="fas fa-envelope"></i> Email Address</div>
+            <div class="info-row-value" id="info-email">—</div>
+          </div>
+          <div class="info-row">
+            <div class="info-row-label"><i class="fas fa-layer-group"></i> Proficiency Level</div>
+            <div class="info-row-value" id="info-level">—</div>
+          </div>
+          <div class="info-row">
+            <div class="info-row-label"><i class="fas fa-calendar-check"></i> Registration Date</div>
+            <div class="info-row-value" id="info-registration-date">—</div>
+          </div>
+          <div class="info-row">
+            <div class="info-row-label"><i class="fas fa-toggle-on"></i> Account Status</div>
+            <div class="info-row-value" id="info-status-badge">—</div>
+          </div>
+        </div>
+
+        <!-- Score and activity breakdown -->
+        <div class="user-info-card">
+          <div class="user-info-card-header"><i class="fas fa-chart-bar" style="margin-right:8px;"></i>Score &amp; Activity</div>
+          <div class="info-row">
+            <div class="info-row-label"><i class="fas fa-gamepad"></i> Total Games Played</div>
+            <div class="info-row-value" id="info-total-games">—</div>
+          </div>
+          <div class="info-row">
+            <div class="info-row-label"><i class="fas fa-percentage"></i> Average Score</div>
+            <div class="info-row-value">
+              <div class="score-bar-wrap">
+                <span id="info-avg-score-value">—</span>
+                <div class="score-bar-track">
+                  <div class="score-bar-fill" id="info-score-bar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-row-label"><i class="fas fa-chart-line"></i> Activity Graph</div>
+            <div class="info-row-value">
+              <a id="link-to-graph" href="#"
+                 style="color:var(--purple);font-weight:600;font-size:13px;text-decoration:none;">
+                <i class="fas fa-external-link-alt" style="font-size:11px;margin-right:5px;"></i>View Graph
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end .user-detail-sections -->
+    </div><!-- end .user-detail-layout -->
+
+  </main>
+
+  <script src="shared.js"></script>
+  <script>
+    const adminSession = requireAuth();
+    buildSidebar('users', adminSession.role);
+    buildHeader('View User', adminSession);
+
+    /* Resolve the learner from the ?id= query param */
+    const urlParams      = new URLSearchParams(window.location.search);
+    const selectedUserId = parseInt(urlParams.get('id'), 10);
+    const selectedUser   = MOCK.users.find(user => user.id === selectedUserId);
+
+    if (!selectedUser) {
+      document.getElementById('main').innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-user-slash"></i>
+          <p>User not found. <a href="users.html" style="color:var(--gold);">Return to User Management</a></p>
+        </div>`;
+    }
+
+    /* Accent colour per proficiency level */
+    const levelAccentColour = {
+      Basic: '#00e676', Intermediate: '#00d4ff',
+      Advanced: '#ff8c00', Expert: '#f0a500', Master: '#a855f7',
+    };
+
+    /* Status colour map */
+    const statusColour = {
+      active: 'var(--green)', pending: 'var(--orange)', blocked: 'var(--red)',
+    };
+
+    if (selectedUser) {
+      const accentColour = levelAccentColour[selectedUser.level] || '#f0a500';
+      const initials     = selectedUser.name.split(' ').map(part => part[0]).join('');
+      const scoreColour  = selectedUser.score >= 85 ? 'var(--green)' : selectedUser.score >= 60 ? 'var(--gold)' : 'var(--red)';
+
+      /* Breadcrumb */
+      document.getElementById('breadcrumb-page-label').textContent = selectedUser.name;
+
+      /* Identity card — left column */
+      const avatarEl = document.getElementById('user-large-avatar');
+      avatarEl.textContent   = initials;
+      avatarEl.style.cssText = `background:${accentColour}22; color:${accentColour};`;
+
+      document.getElementById('user-display-name').textContent  = selectedUser.name;
+      document.getElementById('user-display-email').textContent = selectedUser.email;
+
+      const levelPill = document.getElementById('user-level-pill');
+      levelPill.textContent   = selectedUser.level;
+      levelPill.style.cssText = `background:${accentColour}18; color:${accentColour}; border:1px solid ${accentColour}30;`;
+
+      document.getElementById('user-registration-date').textContent = selectedUser.reg;
+
+      const statusDot   = document.getElementById('user-status-dot');
+      const statusLabel = document.getElementById('user-status-label');
+      statusDot.style.color   = statusColour[selectedUser.status] || 'var(--text-muted)';
+      statusLabel.textContent = selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1);
+      statusLabel.style.color = statusColour[selectedUser.status] || 'var(--text-muted)';
+
+      /* Quick-action buttons — shown according to admin role permissions */
+      const actionsEl = document.getElementById('identity-actions');
+      if (can(adminSession, 'edit') && selectedUser.status === 'pending') {
+        actionsEl.innerHTML += `
+          <button class="btn btn-success btn-sm" style="width:100%;"
+                  onclick="approveUser(${selectedUser.id})">
+            <i class="fas fa-check"></i> Approve User
+          </button>`;
+      }
+      if (can(adminSession, 'edit')) {
+        actionsEl.innerHTML += `
+          <button class="btn btn-cyan btn-sm" style="width:100%;"
+                  onclick="window.location.href='users.html'">
+            <i class="fas fa-edit"></i> Edit User
+          </button>`;
+      }
+      actionsEl.innerHTML += `
+        <button class="btn btn-outline btn-sm" style="width:100%;"
+                onclick="window.location.href='user-graph.html?id=${selectedUser.id}'">
+          <i class="fas fa-chart-line"></i> View Graph
+        </button>`;
+      if (can(adminSession, 'delete')) {
+        actionsEl.innerHTML += `
+          <button class="btn btn-danger btn-sm" style="width:100%;"
+                  onclick="deleteUser(${selectedUser.id})">
+            <i class="fas fa-trash"></i> Delete User
+          </button>`;
+      }
+
+      /* Stat cards — right column top row */
+      document.getElementById('stat-games-played').textContent = selectedUser.games;
+      document.getElementById('stat-avg-score').textContent    = selectedUser.score + '%';
+      document.getElementById('stat-level').textContent        = selectedUser.level;
+
+      const statStatusEl = document.getElementById('stat-status');
+      statStatusEl.textContent = selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1);
+      statStatusEl.style.color = statusColour[selectedUser.status] || 'var(--text-muted)';
+
+      /* Account info rows */
+      document.getElementById('info-full-name').textContent          = selectedUser.name;
+      document.getElementById('info-email').textContent              = selectedUser.email;
+      document.getElementById('info-level').textContent              = selectedUser.level;
+      document.getElementById('info-registration-date').textContent  = selectedUser.reg;
+      document.getElementById('info-status-badge').innerHTML = `
+        <span class="status-pill status-${selectedUser.status}">
+          <span class="status-dot"></span>${selectedUser.status}
+        </span>`;
+
+      /* Score & activity rows */
+      document.getElementById('info-total-games').textContent    = selectedUser.games + ' games';
+      document.getElementById('info-avg-score-value').textContent = selectedUser.score + '%';
+
+      const scoreBar = document.getElementById('info-score-bar');
+      scoreBar.style.width      = selectedUser.score + '%';
+      scoreBar.style.background = scoreColour;
+
+      document.getElementById('link-to-graph').href = `user-graph.html?id=${selectedUser.id}`;
+    }
+
+    function approveUser(id) {
+      const user = MOCK.users.find(u => u.id === id);
+      if (user) {
+        user.status = 'active';
+        window.location.reload(); // refresh to reflect the status change
+      }
+    }
+
+    function deleteUser(id) {
+      if (confirm('Are you sure you want to delete this user?')) {
+        const index = MOCK.users.findIndex(u => u.id === id);
+        if (index > -1) {
+          MOCK.users.splice(index, 1);
+          window.location.href = 'users.html';
+        }
+      }
+    }
+  </script>
+</body>
+</html>
