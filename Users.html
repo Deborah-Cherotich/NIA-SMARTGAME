@@ -169,8 +169,7 @@ buildHeader('User Management', session);
 
 if (can(session, 'create')) {
   document.getElementById('page-actions').innerHTML = `
-    <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
-    <button class="btn btn-primary" onclick="openAddUser()"><i class="fas fa-user-plus"></i> Add User</button>`;
+    <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> Print</button>`;
 }
 
 if (!can(session, 'edit')) {
