@@ -34,34 +34,7 @@
     }
     @media (max-width: 700px) { .form-row { grid-template-columns: 1fr; } }
 
-    /* Radio buttons for model type */
-    .radio-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
-    .radio-option {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg-input);
-      cursor: pointer;
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      transition: all var(--tr);
-      user-select: none;
-    }
-    .radio-option:hover { border-color: rgba(240,165,0,.4); color: var(--text); }
-    .radio-option input[type="radio"] {
-      accent-color: var(--gold);
-      width: 15px; height: 15px; cursor: pointer;
-    }
-    .radio-option:has(input:checked) {
-      border-color: var(--gold);
-      color: var(--gold);
-      background: rgba(240,165,0,.08);
-    }
+
 
     /* File input */
     .file-input-wrapper { position: relative; width: 100%; }
@@ -283,15 +256,15 @@
           </div>
           <div class="form-group">
             <label>Model Type</label>
-            <div class="radio-group">
-              <label class="radio-option">
-                <input type="radio" name="model-type" value="2PL"/> 2PL
+            <div style="display:flex; gap:16px; margin-top:8px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600;">
+                <input type="checkbox" id="model-2pl" value="2PL" style="accent-color:var(--gold); width:15px; height:15px; cursor:pointer;"/> 2PL
               </label>
-              <label class="radio-option">
-                <input type="radio" name="model-type" value="3PL"/> 3PL
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600;">
+                <input type="checkbox" id="model-3pl" value="3PL" style="accent-color:var(--gold); width:15px; height:15px; cursor:pointer;"/> 3PL
               </label>
             </div>
-            <div class="field-hint">Select the IRT model applicable to this game</div>
+            <div class="field-hint">Select one or both model types applicable to this game</div>
           </div>
         </div>
 
@@ -425,8 +398,10 @@
     const isInt     = v => v.trim() !== '' && Number.isInteger(Number(v)) && Number(v) >= 0;
     const isPercent = v => { const n = parseFloat(v); return !isNaN(n) && n >= 0 && n <= 100; };
     const getModelType = () => {
-      const checked = document.querySelector('input[name="model-type"]:checked');
-      return checked ? checked.value : null;
+      const selected = [];
+      if (document.getElementById('model-2pl').checked) selected.push('2PL');
+      if (document.getElementById('model-3pl').checked) selected.push('3PL');
+      return selected.length ? selected : null;
     };
 
     function findFirstInvalidField() {
@@ -487,7 +462,8 @@
         if (el) el.value = '';
       });
       document.getElementById('game-subject').innerHTML = '<option value="">— Select subject —</option>';
-      document.querySelectorAll('input[name="model-type"]').forEach(r => r.checked = false);
+      document.getElementById('model-2pl').checked = false;
+      document.getElementById('model-3pl').checked = false;
       if (hiddenHtmlContent) hiddenHtmlContent.value = '';
       if (fileInput)         fileInput.value = '';
       if (fileStatusDiv) {
